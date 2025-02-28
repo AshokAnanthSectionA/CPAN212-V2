@@ -1,10 +1,15 @@
-const express = require('express');
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import _ from 'lodash';
+
 const app = express();
 const port = 5000;
-const path = require('path');
-const _ = require('lodash'); // Import Lodash
 
-app.use(express.static(path.join(__dirname, 'client/dist')));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, '../client/dist')));
 app.use(express.json());
 
 // Sample image paths (replace with your actual image paths)
@@ -31,7 +36,7 @@ app.post('/api/upload-dog', (req, res) => {
 });
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
+  res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
 });
 
 app.listen(port, () => {
