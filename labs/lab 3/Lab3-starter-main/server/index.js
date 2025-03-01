@@ -1,39 +1,37 @@
-const express = require('express');
+import express from "express";
+import cors from "cors";
+import save_router from "./routers/save_router.js";
+import fetch_router from "./routers/fetch_router.js";
+
 const app = express();
-const port = 5000;
-const path = require('path');
-const _ = require('lodash'); // Import Lodash
+const PORT = process.env.PORT || 8000;
 
-app.use(express.static(path.join(__dirname, 'client/dist')));
+// middleware
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(cors());
 
-// Sample image paths (replace with your actual image paths)
-const imagePaths = [
-  '/images/image1.jpg',
-  '/images/image2.jpg',
-  '/images/image3.jpg',
-  '/images/image4.jpg',
-  '/images/image5.jpg',
-  '/images/image6.jpg',
-];
+// routes
+app.use("/save", save_router);
+app.use("/fetch", fetch_router);
 
-app.get('/api/random-images', (req, res) => {
-  const randomImages = _.sampleSize(imagePaths, 3); // Get up to 3 random images
-  res.json(randomImages);
+app.get("/", (req, res) => {
+  res.send("Welcome to the server, Check /api-list for available routes");
 });
 
-// Dog image upload endpoint
-app.post('/api/upload-dog', (req, res) => {
-  const dogImageUrl = req.body.imageUrl;
-  console.log('Received dog image URL:', dogImageUrl);
-  // Here you would typically save the image URL or download the image.
-  res.json({ message: 'Dog image URL received successfully.' });
+app.get("/api-list", (req, res) => {
+  const apiList = {
+    save_routes: ["/save/single", "/save/multiple", "save/dog"],
+    fetch_routes: ["/fetch/single", "/fetch/multiple"],
+  };
+
+  res.send(apiList);
 });
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
+app.listen(PORT, () => {
+  console.log(`http://localhost:${PORT}`);
 });
 
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
+app.use("", (req, res) => {
+  res.send(`No request for ${req.url} exists`);
 });

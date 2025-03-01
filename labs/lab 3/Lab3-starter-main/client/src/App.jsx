@@ -3,64 +3,10 @@ import { useState } from "react";
 const App = () => {
   // what do we need to track
   const [singleFile, setSingleFile] = useState(null);
-  const [displayImage, setDisplayImage] = useState(null);
-  const [displayImages, setDisplayImages] = useState([]);
-  const [displayDogImage, setDisplayDogImage] = useState(null);
+  const [displayImage, setDisplayImage] = useState(null); // display an image
+  const [displayImages, setDisplayImages] = useState(); // display multiple images
+  const [displayDogImage, setDisplayDogImage] = useState(null); // display dog images
   const [message, setMessage] = useState("");
-
-  const fetchDogImage = async () => {
-    try {
-      const response = await fetch("https://dog.ceo/api/breeds/image/random");
-      const data = await response.json();
-
-      setDisplayDogImage(data.message);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const submitDogImage = async (e) => {
-    e.preventDefault();
-
-    try {
-      const response = await fetch(displayDogImage);
-      const data = await response.blob();
-      const formData = new FormData();
-      formData.append("file", data, "dogo.jpg");
-
-      const uploadFile = await fetch("http://localhost:8000/save/single", {
-        method: "POST",
-        body: formData,
-      });
-
-      const responseData = await uploadFile.json();
-      setMessage(responseData.message);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const fetchMultipleImages = async () => {
-    try {
-      const response = await fetch("http://localhost:8000/fetch/multiple");
-      const data = await response.json();
-      console.log(data);
-
-      const filePromises = data.map(async (filename) => {
-        const fetchFile = await fetch(`http://localhost:8000/fetch/file/${filename}`);
-        const fileBlob = await fetchFile.blob();
-        console.log(fileBlob);
-
-        const imageUrl = URL.createObjectURL(fileBlob);
-        return imageUrl;
-      });
-
-      const imageUrls = await Promise.all(filePromises);
-      setDisplayImages(imageUrls);
-    } catch (error) {
-      console.log(error);
-    }
-  };
 
   // Handlers
   const handleSingleFileChange = (e) => {
@@ -72,12 +18,9 @@ const App = () => {
   // fetch functions -> fetch a random single image
   const fetchSingleFile = async () => {
     try {
-      const response = await fetch("http://localhost:8000/fetch/single");
+      const response = await fetch("http://localhost:5000/fetch/single"); // Use the correct backend URL
 
-      const blob = await response.blob(); // we made a blob - Binary Large Object
-      // but thats not an image, so we need to make an image element
-
-      // using createObjectURL
+      const blob = await response.blob();
       const imageUrl = URL.createObjectURL(blob);
       setDisplayImage(imageUrl);
     } catch (error) {
@@ -97,7 +40,7 @@ const App = () => {
       const formData = new FormData();
       formData.append("file", singleFile);
 
-      const response = await fetch("http://localhost:8000/save/single", {
+      const response = await fetch("http://localhost:5000/save/single", { // Use the correct backend URL
         method: "POST",
         body: formData,
       });
@@ -113,9 +56,51 @@ const App = () => {
     }
   };
 
-  // fetch functions -> fetch multiple [TODO]
-  // fetch functions -> fetch dog image [TODO]
-  // fetch functions -> save dog image [TODO]
+  // fetch functions -> fetch multiple
+  const fetchMultiple = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/fetch/multiple"); // Use the correct backend URL
+      const data = await response.json(); // This should be an array of filenames
+
+      const imageUrls = data.map((filename) => `http://localhost:5000/uploads/${filename}`);
+
+      setDisplayImages(imageUrls);
+    } catch (error) {
+      console.log("Error fetching multiple files:", error);
+    }
+  };
+
+  // fetch functions -> fetch dog image
+  const fetchDogImage = async () => {
+    try {
+      const response = await fetch("https://dog.ceo/api/breeds/image/random");
+      const data = await response.json();
+      setDisplayDogImage(data.message);
+    } catch (error) {
+      console.log("Error fetching dog image:", error);
+    }
+  };
+
+  // fetch functions -> save dog image (modified)
+  const saveDogImage = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch("http://localhost:5000/api/upload-dog", { // Use the correct backend URL
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ imageUrl: displayDogImage }),
+      });
+
+      const data = await response.json();
+      setMessage(data.message);
+    } catch (error) {
+      console.log("Error: ", error);
+      setMessage("Failed to upload dog image.");
+    }
+  };
+
 
   return (
     <div>
@@ -132,35 +117,41 @@ const App = () => {
           />
         </div>
       )}
+
       <form onSubmit={handleSubmitSingleFile}>
         <h2>Upload Single File</h2>
         <input type="file" onChange={handleSingleFileChange} />
         <button type="submit">Upload Single File</button>
       </form>
 
-      <button onClick={fetchMultipleImages}>Fetch Multiple Images</button>
+      <h2>Fetch Multiple Images</h2>
+      <button onClick={fetchMultiple}>Grab Multiple Files</button>
       {displayImages.length > 0 ? (
-        displayImages.map((imageUrl, index) => (
+        displayImages.map((image, index) => (
           <div key={index}>
             <img
-              src={imageUrl}
-              alt={`Fetched ${index}`}
-              style={{ width: "200px", height: "200px", margin: "10px" }}
+              src={image}
+              style={{ width: "200px", marginTop: "10px" }}
             />
-
-            <button onClick={fetchDogImage}>Get the Dog</button>
-            {displayDogImage && (
-              <div>
-                <h3> AMAZING DOG</h3>
-                <img src={displayDogImage} style={{ width: "300px" }} />
-                <button onClick={submitDogImage}>Submit to server</button>
-              </div>
-            )}
           </div>
         ))
       ) : (
-        <p>no image to display yet</p>
+        <p>No Images Available</p>
       )}
+
+      <h2>Fetch Random Dog Image</h2>
+      <button onClick={fetchDogImage}>Grab Dog</button>
+      {displayDogImage && (
+        <div>
+          <img
+            src={displayDogImage}
+            alt="Dog"
+            style={{ width: "200px", margin: "10px" }}
+          />
+          <button onClick={saveDogImage}>Take the Dog</button>
+        </div>
+      )}
+
     </div>
   );
 };

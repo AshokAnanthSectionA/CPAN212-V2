@@ -1,44 +1,25 @@
-import fs from "fs";
 import multer from "multer";
 import path from "path";
-import { fileURLToPath } from "url";
 
+import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const uploadPath = path.join(__dirname, "../uploads");
-
-// Ensure the uploads folder exists
-if (!fs.existsSync(uploadPath)) {
-  fs.mkdirSync(uploadPath, { recursive: true });
-}
-
 const storage = multer.diskStorage({
+  // the function that saves the file
+
   destination: function (req, file, cb) {
-    cb(null, uploadPath);
+
+    // where we are storing the file
+    cb(null, path.join(__dirname, "../uploads"));
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const fileExtension = path.extname(file.originalname);
-    cb(null, file.fieldname + "-" + uniqueSuffix + fileExtension);
+
+    // what the is filename going to be
+    cb(null, `${Date.now()}-${file.originalname}`); // this will save files like: date-filename.extension
   },
 });
 
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error("Invalid file type. Only images are allowed."), false);
-  }
-};
-
-const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10 MB limit
-  },
-});
+const upload = multer({ storage: storage }); // the middleware function that handles uploading
 
 export default upload;
